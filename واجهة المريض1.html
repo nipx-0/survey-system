@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Experience Survey | استبيان تجربة المريض</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            direction: rtl;
+            text-align: right;
+        }
+        .container {
+            max-width: 90%;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .star {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .star.selected {
+            color: #f5b000;
+        }
+        .rating-10-btn {
+            background-color: #e5e7eb;
+            color: #1f2937;
+            transition: all 0.2s;
+        }
+        .rating-10-btn.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container bg-white rounded-lg shadow-lg">
+        <header class="py-6 border-b border-gray-200 flex justify-end items-center px-4">
+            <div class="lang-switcher">
+                <button id="lang-ar" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-1 px-3 rounded-md transition-colors duration-200">العربية</button>
+                <button id="lang-en" class="bg-white hover:bg-gray-100 text-gray-800 font-bold py-1 px-3 rounded-md transition-colors duration-200">English</button>
+            </div>
+        </header>
+
+        <main class="py-8">
+            <div id="initial-form-container" class="bg-gray-50 p-6 rounded-lg shadow-inner">
+                <form id="department-selection-form">
+                    <h3 id="welcome-text" class="text-xl font-semibold text-gray-700 mb-4">أهلاً بك في منصة قسم تجربة المريض</h3>
+                    <p id="prompt-text" class="text-gray-600 mb-6">أين كانت زيارتك الأخيرة للمستشفى؟</p>
+                    <div id="department-options" class="mb-4 space-y-2">
+                        <!-- Department radio buttons will be inserted here -->
+                    </div>
+                    <button type="submit" id="start-survey-btn" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200 mt-4">
+                        ابـدأ الاسـتـبـيـان
+                    </button>
+                </form>
+            </div>
+            
+            <div id="survey-form-container" class="hidden">
+                <!-- Survey form will be dynamically generated here -->
+            </div>
+            
+            <div id="message-box" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-80 text-center">
+                    <h4 id="thanks-text" class="text-lg font-bold mb-2">شكراً</h4>
+                    <p id="message-text" class="mb-4">شكراً لتقييمك! تم إرسال ملاحظاتك بنجاح.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialFormContainer = document.getElementById('initial-form-container');
+            const departmentSelectionForm = document.getElementById('department-selection-form');
+            const departmentOptionsContainer = document.getElementById('department-options');
+            const feedbackFormContainer = document.getElementById('survey-form-container');
+            const messageBox = document.getElementById('message-box');
+            
+            const welcomeTextEl = document.getElementById('welcome-text');
+            const promptTextEl = document.getElementById('prompt-text');
+            const startSurveyBtn = document.getElementById('start-survey-btn');
+            const thanksTextEl = document.getElementById('thanks-text');
+            const messageTextEl = document.getElementById('message-text');
+
+            const langArBtn = document.getElementById('lang-ar');
+            const langEnBtn = document.getElementById('lang-en');
+
+            let currentLang = 'ar';
+            let currentSurvey = null;
+            let currentQuestionIndex = 0;
+            const submissionData = {};
+
+            const messages = {
+                ar: {
+                    welcome: "أهلاً بك في منصة قسم تجربة المريض",
+                    prompt: "أين كانت زيارتك الأخيرة للمستشفى؟",
+                    startBtn: "ابـدأ الاسـتـبـيـان",
+                    nextBtn: "التالي",
+                    backBtn: "رجوع",
+                    submitBtn: "أرسل التقييم",
+                    thanks: "شكراً",
+                    message: "شكراً لتقييمك! تم إرسال ملاحظاتك بنجاح.",
+                    departments: {
+                        emergency_ar: "قسم الطوارئ",
+                        outpatient_ar: "العيادات الخارجية",
+                        inpatient_ar: "قسم التنويم"
+                    },
+                    star_1: 'سيء جداً', star_2: 'سيء', star_3: 'جيد', star_4: 'جيد جداً', star_5: 'ممتاز',
+                    contact_title: "إذا كنت ترغب في أن نتواصل معك بشأن ملاحظاتك، يرجى ترك تفاصيل الاتصال الخاصة بك أدناه",
+                    name: "الاسم", phone: "رقم الهاتف", email: "البريد الإلكتروني",
+                    required: "هذا الحقل مطلوب.",
+                    invalid_email: "يرجى إدخال بريد إلكتروني صحيح."
+                },
+                en: {
+                    welcome: "Welcome to Patient Experience Department",
+                    prompt: "Where was your last visit to the hospital?",
+                    startBtn: "Start Survey",
+                    nextBtn: "Next",
+                    backBtn: "Back",
+                    submitBtn: "Submit Feedback",
+                    thanks: "Thank You",
+                    message: "Thank you for your feedback! Your submission has been successfully sent.",
+                    departments: {
+                        emergency_en: "Emergency Department",
+                        outpatient_en: "Outpatient Clinics",
+                        inpatient_en: "Inpatient Ward"
+                    },
+                    star_1: 'Very Poor', star_2: 'Poor', star_3: 'Good', star_4: 'Very Good', star_5: 'Excellent',
+                    contact_title: "If you would like us to contact you about your feedback, please leave your contact details below",
+                    name: "Name", phone: "Phone Number", email: "Email",
+                    required: "This field is required.",
+                    invalid_email: "Please enter a valid email address."
+                }
+            };
+
+            const starDescriptions = (lang) => ({
+                1: messages[lang].star_1,
+                2: messages[lang].star_2,
+                3: messages[lang].star_3,
+                4: messages[lang].star_4,
+                5: messages[lang].star_5
+            });
+
+            // Load survey data from the same source as dashboard
+            let surveys = JSON.parse(localStorage.getItem('surveys')) || [];
+            
+            // If no surveys in localStorage, use default data
+            if (surveys.length === 0) {
+                surveys = [
+                    {
+                        "id": "emergency_ar", "title": "قسم الطوارئ", "description": "عزيزي المراجع، تولي إدارة المستشفى اهتماماً كبيراً لآراء المرضى وملاحظاتهم وذلك لتطوير الأداء. لذا نأمل أن تمنحنا قليلاً من وقتك للإجابة على الأسئلة التالية.",
+                        "questions": [
+                            { "id": "q1", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك في قسم الطوارئ؟" },
+                            { "id": "q2", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع عملية التسجيل والموظفين؟", "conditional": { "value": 1, "type": "radio", "text": "بناءاً على تجربتك، أي مما يلي يمكن تحسينه من خلال عملية التسجيل؟", "options": [ "إحترام ولباقة موظفي التسجيل", "حسن استقبال ومساعدة موظفي التسجيل", "سرعة الخدمة المقدمة" ] } },
+                            { "id": "q3", "type": "rating", "text": "ما هو تقييمك لأداء طاقم التمريض في قسم الطوارئ؟", "conditional": { "value": 1, "type": "radio", "text": "ما هي أسباب عدم رضاك عن طاقم التمريض؟", "options": [ "إحترام ولباقة الطاقم", "الاستماع لك بعناية وانتباه", "شرح الإجراءات بأسلوب مفهوم" ] } },
+                            { "id": "q4", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الطبيب؟" },
+                            { "id": "q5", "type": "rating", "text": "كيف تقيم نظافة غرف الإنتظار و دورات المياه؟" },
+                            { "id": "q6", "type": "rating", "text": "يرجى تقييم مستوى احترام ولباقة اخصائي / طبيب الأشعة" },
+                            { "id": "q7", "type": "rating", "text": "كيف تقيم شرح الإجراءات من قبل أخصائي / طبيب الأشعة؟" },
+                            { "id": "q8", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الصيدلية؟" },
+                            { "id": "q9", "type": "rating", "text": "يرجى تقييم مستوى احترام ولباقة الصيدلي" },
+                            { "id": "q10", "type": "radio", "text": "هل شرح الصيدلي طريقة إستخدام الدواء؟", "options": ["نعم", "لا"] },
+                            { "id": "q11", "type": "radio", "text": "هل وضع الصيدلي ملصقات التعليمات على الدواء؟", "options": ["نعم", "لا"] },
+                            { "id": "q12", "type": "radio", "text": "هل كانت الأدوية الموصوفة متوفرة؟", "options": ["نعم", "لا"] },
+                            { "id": "q13", "type": "rating", "text": "كيف تقيم إجمالي مدة الإنتظار خلال زيارتك؟", "conditional": { "value": 1, "type": "checkbox", "text": "في أي مرحلة كان وقت الإنتظار الأطول خلال زيارتك؟", "options": [ "التسجيل", "الفحص الأولي", "الدخول على الطبيب", "الأشعة", "الصيدلية", "انتظار الحصول على الموافقة من شركة التأمين" ] } },
+                            { "id": "q14", "type": "rating-10", "text": "ما هي احتمالية أن تنصح عائلتك وأصدقائك بمستشفى دلّه؟" },
+                            { "id": "q15", "type": "radio", "text": "بناءً على تجربتك، هل تختار مستشفى دلّه مستقبلاً عند الحاجة؟", "options": ["نعم", "لا"] },
+                            { "id": "q16", "type": "text", "text": "هل لديك أي ملاحظات للرقي بالخدمة؟" },
+                            { "id": "q17", "type": "text", "text": "هل يوجد خدمات أو أشخاص يستحقون الشكر؟" }
+                        ]
+                    },
+                    {
+                        "id": "outpatient_ar", "title": "العيادات الخارجية", "description": "عزيزي المراجع، تولي إدارة المستشفى اهتماماً كبيراً لآراء المرضى وملاحظاتهم وذلك لتطوير الأداء. لذا نأمل أن تمنحنا قليلاً من وقتك للإجابة على الأسئلة التالية.",
+                        "questions": [
+                            { "id": "q1", "type": "rating", "text": "بناءاً على زيارتك الأخيرة، يرجى تقييم سهولة حجز موعدك" },
+                            { "id": "q2", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع عملية التسجيل والموظفين؟", "conditional": { "value": 1, "type": "radio", "text": "أي مما يلي يمكن تحسينه من خلال عملية التسجيل؟", "options": [ "إحترام ولباقة موظفي التسجيل", "حسن استقبال ومساعدة موظفي التسجيل", "سرعة الخدمة المقدمة" ] } },
+                            { "id": "q3", "type": "rating", "text": "ما هو تقييمك لأداء طاقم التمريض في المستشفى؟", "conditional": { "value": 1, "type": "radio", "text": "ما هي أسباب عدم رضاك عن طاقم التمريض؟", "options": [ "إحترام ولباقة الطاقم", "الاستماع لك بعناية وانتباه", "شرح الإجراءات بأسلوب مفهوم" ] } },
+                            { "id": "q4", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الطبيب؟", "conditional": { "value": 1, "type": "radio", "text": "بناءاً على تجربتك مع الطبيب، ما الذي يمكن تحسينه؟", "options": [ "إحترام ولباقة الطبيب", "الاستماع لك بعناية وانتباه", "التحدث معك عن الخطة العلاجية" ] } },
+                            { "id": "q5", "type": "rating", "text": "كيف تقيم نظافة غرف الإنتظار ودورات المياه؟" },
+                            { "id": "q6", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع قسم المختبر؟" },
+                            { "id": "q7", "type": "radio", "text": "كم عدد محاولات سحب الدم؟", "options": ["1", "2", "2+"] },
+                            { "id": "q8", "type": "radio", "text": "هل قامت فنية سحب الدم بإتباع الإجراءات الصحيحة لتنظيف اليدين وارتداء القفازات قبل سحب الدم؟", "options": ["نعم", "لا"] },
+                            { "id": "q9", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع قسم الأشعة؟" },
+                            { "id": "q10", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الصيدلية؟" },
+                            { "id": "q11", "type": "rating", "text": "يرجى تقييم مستوى احترام ولباقة الصيدلي" },
+                            { "id": "q12", "type": "radio", "text": "هل شرح الصيدلي طريقة إستخدام الدواء؟", "options": ["نعم", "لا"] },
+                            { "id": "q13", "type": "radio", "text": "هل وضع الصيدلي ملصقات التعليمات على الدواء؟", "options": ["نعم", "لا"] },
+                            { "id": "q14", "type": "radio", "text": "هل كانت الأدوية الموصوفة متوفرة؟", "options": ["نعم", "لا"] },
+                            { "id": "q15", "type": "rating", "text": "كيف تقيم إجمالي مدة الإنتظار خلال زيارتك لمستشفى دلّه؟", "conditional": { "value": 1, "type": "checkbox", "text": "في أي مرحلة كان وقت الإنتظار الأطول خلال زيارتك؟", "options": [ "التسجيل", "الدخول على الطبيب", "المختبر", "الصيدلية", "الأشعة", "إجراءات الحصول على موافقة التأمين" ] } },
+                            { "id": "q16", "type": "rating-10", "text": "ما هي احتمالية أن تنصح عائلتك وأصدقائك بمستشفى دلّه؟" },
+                            { "id": "q17", "type": "radio", "text": "بناءً على تجربتك، هل تختار مستشفى دلّه مستقبلاً عند الحاجة؟", "options": ["نعم", "لا"] },
+                            { "id": "q18", "type": "text", "text": "هل لديك أي ملاحظات للرقي بالخدمة؟" },
+                            { "id": "q19", "type": "text", "text": "هل يوجد خدمات أو أشخاص يستحقون الشكر؟" }
+                        ]
+                    },
+                    {
+                        "id": "inpatient_ar", "title": "قسم التنويم", "description": "عزيزي المريض، يرجى التكرم بالإجابة على الأسئلة التالية لمساعدتنا في تطوير خدمات قسم التنويم وتحسينها.",
+                        "questions": [
+                            { "id": "q1", "type": "rating", "text": "بشكل عام، كيف تقيم تجربتك أثناء فترة إقامتك في المستشفى؟" },
+                            { "id": "q2", "type": "rating", "text": "ما هو تقييمك لعملية الدخول (التنويم) في المستشفى؟" },
+                            { "id": "q3", "type": "rating", "text": "كيف تقيم أداء طاقم التمريض خلال فترة تنويمك؟", "conditional": { "value": 1, "type": "radio", "text": "ما هي أسباب عدم رضاك عن طاقم التمريض؟", "options": [ "إحترام ولباقة الطاقم", "الاستماع لك بعناية وانتباه", "شرح الإجراءات بأسلوب مفهوم" ] } },
+                            { "id": "q4", "type": "rating", "text": "كيف تقيم أداء طبيبك المعالج؟", "conditional": { "value": 1, "type": "radio", "text": "ما الذي يمكن تحسينه في أداء الطبيب المعالج؟", "options": [ "إحترام ولباقة الطبيب", "الاستماع لك بعناية وانتباه", "شرح الخطة العلاجية بوضوح" ] } },
+                            { "id": "q5", "type": "rating", "text": "هل تم تزويدك بالمعلومات الكافية عن حالتك الصحية؟" },
+                            { "id": "q6", "type": "rating", "text": "كيف تقيم مستوى النظافة في غرف المرضى ودورات المياه؟" },
+                            { "id": "q7", "type": "rating", "text": "كيف تقيم جودة وجبات الطعام المقدمة؟" },
+                            { "id": "q8", "type": "rating", "text": "كيف تقيم إدارة الألم والتعامل معه من قبل الطاقم الطبي؟", "conditional": { "value": 1, "type": "radio", "text": "هل كان هناك أي مشاكل في إدارة الألم؟", "options": [ "لم تتم الاستجابة لطلبي بسرعة", "لم يتم تقدير شدة الألم بشكل صحيح", "عدم كفاية الدواء" ] } },
+                            { "id": "q9", "type": "rating", "text": "كيف تقيم عملية الخروج من المستشفى (الخروج)؟" },
+                            { "id": "q10", "type": "rating", "text": "هل تم تزويدك بتعليمات واضحة حول الرعاية بعد الخروج؟" },
+                            { "id": "q11", "type": "rating-10", "text": "ما هي احتمالية أن تنصح عائلتك وأصدقائك بالمستشفى؟" },
+                            { "id": "q12", "type": "radio", "text": "بناءً على تجربتك، هل تختار هذا المستشفى مستقبلاً عند الحاجة؟", "options": ["نعم", "لا"] },
+                            { "id": "q13", "type": "text", "text": "هل لديك أي ملاحظات أخرى للرقي بالخدمة؟" },
+                            { "id": "q14", "type": "text", "text": "هل يوجد خدمات أو أشخاص يستحقون الشكر؟" }
+                        ]
+                    }
+                ];
+            }
+            
+            const surveyData = { ar: surveys };
+
+            // Simplified data store and persistence for the demo
+            let feedback = JSON.parse(localStorage.getItem('feedback')) || {};
+            const saveData = () => {
+                localStorage.setItem('feedback', JSON.stringify(feedback));
+            };
+
+
+
+            // Set language and render initial form
+            const setLanguage = (lang) => {
+                currentLang = lang;
+                document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+                document.body.style.textAlign = lang === 'ar' ? 'right' : 'left';
+                langArBtn.classList.toggle('bg-white', lang === 'en');
+                langArBtn.classList.toggle('bg-gray-200', lang === 'ar');
+                langEnBtn.classList.toggle('bg-white', lang === 'ar');
+                langEnBtn.classList.toggle('bg-gray-200', lang === 'en');
+                renderInitialForm();
+            };
+
+            // Renders the initial department selection form
+            const renderInitialForm = () => {
+                const langMessages = messages[currentLang];
+                welcomeTextEl.textContent = langMessages.welcome;
+                promptTextEl.textContent = langMessages.prompt;
+                startSurveyBtn.textContent = langMessages.startBtn;
+                thanksTextEl.textContent = langMessages.thanks;
+                messageTextEl.textContent = langMessages.message;
+
+                departmentOptionsContainer.innerHTML = '';
+                const departments = surveyData[currentLang];
+                departments.forEach(survey => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'flex items-center';
+                    optionDiv.innerHTML = `
+                        <input type="radio" id="${survey.id}" name="survey_department" value="${survey.id}" class="ml-2" required>
+                        <label for="${survey.id}">${survey.title}</label>
+                    `;
+                    departmentOptionsContainer.appendChild(optionDiv);
+                });
+            };
+
+            // Handles form submission from the initial department selection form
+            departmentSelectionForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const selectedId = departmentSelectionForm.querySelector('input[name="survey_department"]:checked').value;
+                currentSurvey = surveyData[currentLang].find(s => s.id === selectedId);
+                
+                if (currentSurvey) {
+                    initialFormContainer.classList.add('hidden');
+                    feedbackFormContainer.classList.remove('hidden');
+                    currentQuestionIndex = 0;
+                    renderQuestion();
+                }
+            });
+
+            // Renders the current question based on the index
+            const renderQuestion = () => {
+                const form = document.createElement('form');
+                form.id = 'feedback-form';
+                form.className = 'bg-gray-50 p-6 rounded-lg shadow-inner';
+                
+                const q = currentSurvey.questions[currentQuestionIndex];
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'mb-4';
+                questionDiv.id = `question-${q.id}`;
+                
+                // Question title and description (only on the first question)
+                if (currentQuestionIndex === 0) {
+                    form.innerHTML += `
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">${currentSurvey.title}</h3>
+                        <p class="text-gray-600 mb-6">${currentSurvey.description}</p>
+                    `;
+                }
+                
+                questionDiv.innerHTML = `<label for="${q.id}" class="block text-gray-700 font-medium mb-2">${q.text}</label>`;
+                
+                if (q.type === 'rating') {
+                    const ratingDiv = document.createElement('div');
+                    ratingDiv.className = 'flex items-center space-x-1 space-x-reverse text-3xl';
+                    
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = q.id;
+                    hiddenInput.required = true;
+                    ratingDiv.appendChild(hiddenInput);
+
+                    for (let i = 1; i <= 5; i++) {
+                        const star = document.createElement('span');
+                        star.className = 'star text-gray-400 transition-colors duration-200';
+                        star.textContent = '★';
+                        star.dataset.value = i;
+                        star.dataset.questionId = q.id;
+                        star.title = starDescriptions(currentLang)[i];
+                        star.addEventListener('click', (e) => {
+                            const value = parseInt(e.target.dataset.value);
+                            const questionId = e.target.dataset.questionId;
+                            const parentRatingDiv = e.target.closest('.flex');
+                            const stars = parentRatingDiv.querySelectorAll('.star');
+                            
+                            stars.forEach(s => s.classList.remove('text-yellow-400'));
+                            for (let j = 1; j <= value; j++) {
+                                parentRatingDiv.querySelector(`[data-value="${j}"]`).classList.add('text-yellow-400');
+                            }
+                            parentRatingDiv.querySelector(`input[name="${questionId}"]`).value = value;
+                            submissionData[questionId] = value;
+
+                            const conditionalDiv = document.getElementById(`conditional-q-${questionId}`);
+                            if (q.conditional && value === q.conditional.value) {
+                                if (!conditionalDiv) {
+                                    const newDiv = document.createElement('div');
+                                    newDiv.id = `conditional-q-${questionId}`;
+                                    newDiv.className = 'mt-4';
+                                    let optionsHTML = '';
+                                    if (q.conditional.type === 'radio') {
+                                        q.conditional.options.forEach((option, index) => {
+                                            optionsHTML += `
+                                                <div class="flex items-center mb-2">
+                                                    <input type="radio" id="${questionId}-reason-${index}" name="${questionId}-reason" value="${option}" class="ml-2">
+                                                    <label for="${questionId}-reason-${index}">${option}</label>
+                                                </div>
+                                            `;
+                                        });
+                                    } else if (q.conditional.type === 'checkbox') {
+                                         q.conditional.options.forEach((option, index) => {
+                                            optionsHTML += `
+                                                <div class="flex items-center mb-2">
+                                                    <input type="checkbox" id="${questionId}-reason-${index}" name="${questionId}-reason" value="${option}" class="ml-2">
+                                                    <label for="${questionId}-reason-${index}">${option}</label>
+                                                </div>
+                                            `;
+                                        });
+                                    }
+                                    newDiv.innerHTML = `
+                                        <label class="block text-gray-700 font-medium mb-2">${q.conditional.text}</label>
+                                        <div class="space-y-2">
+                                            ${optionsHTML}
+                                        </div>
+                                    `;
+                                    questionDiv.appendChild(newDiv);
+                                }
+                            } else {
+                                if (conditionalDiv) {
+                                    conditionalDiv.remove();
+                                }
+                            }
+                        });
+                        ratingDiv.appendChild(star);
+                    }
+                    questionDiv.appendChild(ratingDiv);
+                } else if (q.type === 'rating-10') {
+                    const rating10Div = document.createElement('div');
+                    rating10Div.className = 'flex flex-wrap space-x-1 space-x-reverse';
+                    
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = q.id;
+                    hiddenInput.required = true;
+                    rating10Div.appendChild(hiddenInput);
+
+                    for (let i = 1; i <= 10; i++) {
+                        const numberBtn = document.createElement('button');
+                        numberBtn.type = 'button';
+                        numberBtn.className = 'rating-10-btn w-8 h-8 rounded-full border border-gray-300 text-sm font-medium hover:bg-blue-500 hover:text-white transition-colors duration-200';
+                        numberBtn.textContent = i;
+                        numberBtn.dataset.value = i;
+                        numberBtn.addEventListener('click', (e) => {
+                            const value = e.target.dataset.value;
+                            const buttons = e.target.closest('.flex').querySelectorAll('.rating-10-btn');
+                            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+                            e.target.classList.add('bg-blue-500', 'text-white');
+                            form.querySelector(`input[name="${q.id}"]`).value = value;
+                            submissionData[q.id] = value;
+                        });
+                        rating10Div.appendChild(numberBtn);
+                    }
+                    questionDiv.appendChild(rating10Div);
+                } else if (q.type === 'text') {
+                    const textarea = document.createElement('textarea');
+                    textarea.id = q.id;
+                    textarea.name = q.id;
+                    textarea.rows = 4;
+                    textarea.className = 'w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500';
+                    textarea.required = true;
+                    questionDiv.appendChild(textarea);
+                } else if (q.type === 'radio') {
+                    q.options.forEach((option, index) => {
+                        const radioDiv = document.createElement('div');
+                        radioDiv.className = 'flex items-center mb-2';
+                        radioDiv.innerHTML = `
+                            <input type="radio" id="${q.id}-${index}" name="${q.id}" value="${option}" class="ml-2" required>
+                            <label for="${q.id}-${index}">${option}</label>
+                        `;
+                        questionDiv.appendChild(radioDiv);
+                    });
+                } else if (q.type === 'checkbox') {
+                     q.options.forEach((option, index) => {
+                        const checkboxDiv = document.createElement('div');
+                        checkboxDiv.className = 'flex items-center mb-2';
+                        checkboxDiv.innerHTML = `
+                            <input type="checkbox" id="${q.id}-${index}" name="${q.id}" value="${option}" class="ml-2">
+                            <label for="${q.id}-${index}">${option}</label>
+                        `;
+                        questionDiv.appendChild(checkboxDiv);
+                    });
+                }
+
+                form.appendChild(questionDiv);
+
+                // Add navigation buttons
+                const navDiv = document.createElement('div');
+                navDiv.className = 'flex justify-between mt-8';
+
+                if (currentQuestionIndex > 0) {
+                    const backButton = document.createElement('button');
+                    backButton.type = 'button';
+                    backButton.className = 'bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-md';
+                    backButton.textContent = messages[currentLang].backBtn;
+                    backButton.addEventListener('click', () => {
+                        currentQuestionIndex--;
+                        renderQuestion();
+                    });
+                    navDiv.appendChild(backButton);
+                }
+
+                const nextButton = document.createElement('button');
+                nextButton.type = 'submit';
+                nextButton.className = 'bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200';
+                nextButton.textContent = messages[currentLang].nextBtn;
+                
+                if (currentQuestionIndex === currentSurvey.questions.length - 1) {
+                    // Last question, change button to submit
+                    nextButton.textContent = messages[currentLang].submitBtn;
+                    nextButton.type = 'submit';
+                    
+                    // Add contact info section on the last page
+                    const contactSection = document.createElement('div');
+                    contactSection.className = 'mt-8 border-t pt-8 border-gray-200';
+                    contactSection.innerHTML = `
+                        <h3 class="text-xl font-semibold text-gray-700 mb-4">${messages[currentLang].contact_title}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="mb-4">
+                                <label for="full-name" class="block text-gray-700 font-medium mb-2">${messages[currentLang].name}</label>
+                                <input type="text" id="full-name" name="full-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div class="mb-4">
+                                <label for="phone" class="block text-gray-700 font-medium mb-2">${messages[currentLang].phone}</label>
+                                <input type="tel" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div class="mb-4 col-span-1 md:col-span-2">
+                                <label for="email" class="block text-gray-700 font-medium mb-2">${messages[currentLang].email}</label>
+                                <input type="email" id="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                    `;
+                    form.appendChild(contactSection);
+                }
+
+                navDiv.appendChild(nextButton);
+                form.appendChild(navDiv);
+
+                feedbackFormContainer.innerHTML = '';
+                feedbackFormContainer.appendChild(form);
+
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    const q = currentSurvey.questions[currentQuestionIndex];
+                    const formData = new FormData(e.target);
+                    if (q.type === 'text') {
+                        submissionData[q.id] = formData.get(q.id);
+                    } else if (q.type === 'radio' || q.type === 'checkbox') {
+                        if (q.conditional) {
+                            const conditionalValue = formData.get(`${q.id}-reason`);
+                            submissionData[q.id] = {
+                                main_answer: formData.get(q.id),
+                                conditional_answer: conditionalValue
+                            };
+                        } else {
+                           submissionData[q.id] = formData.get(q.id);
+                        }
+                    }
+                     
+                    if (currentQuestionIndex === currentSurvey.questions.length - 1) {
+                         // Process final submission
+                         const finalSubmission = {};
+                         
+                         // Process all form data including contact info
+                         for (const [key, value] of formData.entries()) {
+                             if (key.includes('-reason')) {
+                                 finalSubmission[key] = value;
+                             } else if (key === 'full-name' || key === 'phone' || key === 'email') {
+                                 finalSubmission[key] = value;
+                             } else {
+                                 finalSubmission[key] = value;
+                             }
+                         }
+                         
+                         // Add stored submission data
+                         Object.assign(finalSubmission, submissionData);
+                         
+                         finalSubmission.submittedAt = new Date().toISOString();
+                         const surveyId = currentSurvey.id;
+                         if (!feedback[surveyId]) feedback[surveyId] = [];
+                         feedback[surveyId].push(finalSubmission);
+                         saveData();
+                         
+                         feedbackFormContainer.classList.add('hidden');
+                         showMessage();
+                    } else {
+                        currentQuestionIndex++;
+                        renderQuestion();
+                    }
+                });
+            };
+
+            const showMessage = () => {
+                messageBox.classList.remove('hidden');
+                setTimeout(() => {
+                    messageBox.classList.add('hidden');
+                    window.location.reload(); // Reload to reset the app
+                }, 3000);
+            };
+            
+            // Event listeners for language change
+            langArBtn.addEventListener('click', () => setLanguage('ar'));
+            langEnBtn.addEventListener('click', () => setLanguage('en'));
+
+            // Initial render
+            setLanguage('ar');
+        });
+    </script>
+</body>
+</html>

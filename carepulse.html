@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منصة CarePulse للاستبيانات</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            direction: rtl;
+            text-align: right;
+        }
+        .container {
+            max-width: 90%;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .tab-button.active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .survey-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transform: translateY(-2px);
+        }
+        .feedback-item {
+            border-right: 4px solid;
+            border-left: none;
+        }
+        .feedback-positive {
+            border-color: #10b981;
+        }
+        .feedback-negative {
+            border-color: #ef4444;
+        }
+        .feedback-neutral {
+            border-color: #6b7280;
+        }
+        .star {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .star.selected {
+            color: #f5b000;
+        }
+        .rating-10-btn.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <div class="container bg-white rounded-lg shadow-lg">
+        <header class="py-6 border-b border-gray-200 flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">CarePulse <span class="text-blue-500">β</span></h1>
+            <nav>
+                <button id="dashboard-tab" class="tab-button active text-gray-600 font-medium px-4 py-2 hover:text-blue-500 transition-colors duration-200">لوحة التحكم</button>
+            </nav>
+            <div class="flex items-center">
+                <select id="language-select" class="ml-4 p-2 rounded-md border border-gray-300">
+                    <option value="ar" selected>العربية</option>
+                    <option value="en" disabled>English</option>
+                </select>
+            </div>
+        </header>
+
+        <main id="content" class="py-8">
+            <!-- Dashboard View -->
+            <div id="dashboard-view" class="view">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-6">نظرة عامة على الاستبيانات</h2>
+                <div id="surveys-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Survey cards will be dynamically inserted here -->
+                </div>
+                <div class="mt-8 flex justify-between items-center">
+                    <a href="واجهة المريض1.html" target="_blank" class="bg-green-500 text-white font-bold py-2 px-4 rounded-md hover:bg-green-600 transition-colors duration-200">
+                        فتح واجهة المريض
+                    </a>
+                    <button id="generate-fake-data" class="bg-purple-500 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-600 transition-colors duration-200">
+                        إنشاء تقييمات وهمية (345 لكل قسم)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Survey View (for patients and feedback) -->
+            <div id="survey-view" class="view hidden">
+                <button id="back-to-dashboard" class="text-blue-500 font-medium mb-6 flex items-center hover:underline">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 transform rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    العودة إلى لوحة التحكم
+                </button>
+                <div id="survey-details" class="bg-gray-50 p-6 rounded-lg shadow-inner mb-6">
+                    <!-- Survey details will be inserted here -->
+                </div>
+                
+                <!-- Report Section -->
+                <div class="report-section mt-8">
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">تقارير أداء الاستبيان</h3>
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="flex items-center justify-between mb-4">
+                            <h4 class="text-lg font-medium text-gray-700">مقارنة التقييم</h4>
+                            <div class="space-x-2 space-x-reverse">
+                                <button id="compare-quarterly" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-100">ربع سنوي</button>
+                                <button id="compare-semi-annually" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-100">نصف سنوي</button>
+                                <button id="compare-annually" class="px-3 py-1 text-sm rounded-md border border-gray-300 hover:bg-gray-100">سنوي</button>
+                            </div>
+                        </div>
+                        <div id="report-content" class="text-gray-600">
+                            <!-- Report data will be dynamically inserted here -->
+                        </div>
+                    </div>
+                     <!-- New Section for Question-specific Reports -->
+                    <div class="bg-white p-6 rounded-lg shadow-md mt-6">
+                        <h4 class="text-lg font-medium text-gray-700 mb-4">متوسط تقييم كل سؤال</h4>
+                        <div id="question-reports" class="space-y-4">
+                            <!-- Question reports will be dynamically inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feedback Submission Form -->
+                <div id="feedback-form-container">
+                    <!-- Form will be dynamically generated here -->
+                </div>
+
+                <!-- Submitted Feedback -->
+                <div id="feedback-list-container">
+                    <h3 class="xl font-semibold text-gray-700 mt-8 mb-4">التقييمات المُرسلة</h3>
+                    <div id="feedback-list" class="space-y-4">
+                        <!-- Feedback items will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Box -->
+            <div id="message-box" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-80 text-right">
+                    <h4 class="text-lg font-bold mb-2">رسالة</h4>
+                    <p id="message-text" class="mb-4"></p>
+                    <button id="message-ok" class="w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600">حسناً</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const views = {
+                dashboard: document.getElementById('dashboard-view'),
+                survey: document.getElementById('survey-view')
+            };
+            const tabs = {
+                dashboard: document.getElementById('dashboard-tab'),
+            };
+            const surveyListEl = document.getElementById('surveys-list');
+            const surveyDetailsEl = document.getElementById('survey-details');
+            const feedbackFormContainer = document.getElementById('feedback-form-container');
+            const feedbackListEl = document.getElementById('feedback-list');
+            const backToDashboardBtn = document = document.getElementById('back-to-dashboard');
+            const messageBox = document.getElementById('message-box');
+            const messageTextEl = document.getElementById('message-text');
+            const messageOkBtn = document.getElementById('message-ok');
+            const generateFakeDataBtn = document.getElementById('generate-fake-data');
+            const questionReportsEl = document.getElementById('question-reports');
+
+            // Report elements
+            const reportContentEl = document.getElementById('report-content');
+            const compareQuarterlyBtn = document.getElementById('compare-quarterly');
+            const compareSemiAnnuallyBtn = document.getElementById('compare-semi-annually');
+            const compareAnnuallyBtn = document.getElementById('compare-annually');
+
+            let currentSurveyId = null;
+
+            const starDescriptions = {
+                1: 'سيء جداً',
+                2: 'سيء',
+                3: 'جيد',
+                4: 'جيد جداً',
+                5: 'ممتاز'
+            };
+
+            // --- Simple Data Store (Client-Side for this demo) ---
+            let surveys = JSON.parse(localStorage.getItem('surveys')) || [
+                {
+                    "id": "emergency_ar",
+                    "title": "استبيان قسم الطوارئ",
+                    "description": "عزيزي المراجع، تولي إدارة المستشفى اهتماماً كبيراً لآراء المرضى وملاحظاتهم وذلك لتطوير الأداء. لذا نأمل أن تمنحنا قليلاً من وقتك للإجابة على الأسئلة التالية.",
+                    "questions": [
+                        { "id": "q1", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك في قسم الطوارئ؟" },
+                        {
+                            "id": "q2", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع عملية التسجيل والموظفين؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "بناءاً على تجربتك، أي مما يلي يمكن تحسينه من خلال عملية التسجيل؟",
+                                "options": [
+                                    "إحترام ولباقة موظفي التسجيل",
+                                    "حسن استقبال ومساعدة موظفي التسجيل",
+                                    "سرعة الخدمة المقدمة"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "q3", "type": "rating", "text": "ما هو تقييمك لأداء طاقم التمريض في قسم الطوارئ؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "ما هي أسباب عدم رضاك عن طاقم التمريض؟",
+                                "options": [
+                                    "إحترام ولباقة الطاقم",
+                                    "الاستماع لك بعناية وانتباه",
+                                    "شرح الإجراءات بأسلوب مفهوم"
+                                ]
+                            }
+                        },
+                        { "id": "q4", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الطبيب؟" },
+                        { "id": "q5", "type": "rating", "text": "كيف تقيم نظافة غرف الإنتظار و دورات المياه؟" },
+                        { "id": "q6", "type": "rating", "text": "يرجى تقييم مستوى احترام ولباقة اخصائي / طبيب الأشعة" },
+                        { "id": "q7", "type": "rating", "text": "كيف تقيم شرح الإجراءات من قبل أخصائي / طبيب الأشعة؟" },
+                        { "id": "q8", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الصيدلية؟" },
+                        { "id": "q9", "type": "rating", "text": "يرجى تقييم مستوى احترام ولباقة الصيدلي" },
+                        { "id": "q10", "type": "radio", "text": "هل شرح الصيدلي طريقة إستخدام الدواء؟", "options": ["نعم", "لا"] },
+                        { "id": "q11", "type": "radio", "text": "هل وضع الصيدلي ملصقات التعليمات على الدواء؟", "options": ["نعم", "لا"] },
+                        { "id": "q12", "type": "radio", "text": "هل كانت الأدوية الموصوفة متوفرة؟", "options": ["نعم", "لا"] },
+                        {
+                            "id": "q13", "type": "rating", "text": "كيف تقيم إجمالي مدة الإنتظار خلال زيارتك؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "checkbox",
+                                "text": "في أي مرحلة كان وقت الإنتظار الأطول خلال زيارتك؟",
+                                "options": [
+                                    "التسجيل",
+                                    "الفحص الأولي",
+                                    "الدخول على الطبيب",
+                                    "الأشعة",
+                                    "الصيدلية",
+                                    "انتظار الحصول على الموافقة من شركة التأمين"
+                                ]
+                            }
+                        },
+                        { "id": "q14", "type": "rating-10", "text": "ما هي احتمالية أن تنصح عائلتك وأصدقائك بمستشفى دلّه؟" },
+                        { "id": "q15", "type": "radio", "text": "بناءً على تجربتك، هل تختار مستشفى دلّه مستقبلاً عند الحاجة؟", "options": ["نعم", "لا"] },
+                        { "id": "q16", "type": "text", "text": "هل لديك أي ملاحظات للرقي بالخدمة؟" },
+                        { "id": "q17", "type": "text", "text": "هل يوجد خدمات أو أشخاص يستحقون الشكر؟" }
+                    ]
+                },
+                {
+                    "id": "outpatient_ar",
+                    "title": "استبيان العيادات الخارجية",
+                    "description": "عزيزي المراجع، تولي إدارة المستشفى اهتماماً كبيراً لآراء المرضى وملاحظاتهم وذلك لتطوير الأداء. لذا نأمل أن تمنحنا قليلاً من وقتك للإجابة على الأسئلة التالية.",
+                    "questions": [
+                        { "id": "q1", "type": "rating", "text": "بناءاً على زيارتك الأخيرة، يرجى تقييم سهولة حجز موعدك" },
+                        {
+                            "id": "q2", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع عملية التسجيل والموظفين؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "أي مما يلي يمكن تحسينه من خلال عملية التسجيل؟",
+                                "options": [
+                                    "إحترام ولباقة موظفي التسجيل",
+                                    "حسن استقبال ومساعدة موظفي التسجيل",
+                                    "سرعة الخدمة المقدمة"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "q3", "type": "rating", "text": "ما هو تقييمك لأداء طاقم التمريض في المستشفى؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "ما هي أسباب عدم رضاك عن طاقم التمريض؟",
+                                "options": [
+                                    "إحترام ولباقة الطاقم",
+                                    "الاستماع لك بعناية وانتباه",
+                                    "شرح الإجراءات بأسلوب مفهوم"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "q4", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الطبيب؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "بناءاً على تجربتك مع الطبيب، ما الذي يمكن تحسينه؟",
+                                "options": [
+                                    "إحترام ولباقة الطبيب",
+                                    "الاستماع لك بعناية وانتباه",
+                                    "التحدث معك عن الخطة العلاجية"
+                                ]
+                            }
+                        },
+                        { "id": "q5", "type": "rating", "text": "كيف تقيم نظافة غرف الإنتظار ودورات المياه؟" },
+                        { "id": "q6", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع قسم المختبر؟" },
+                        {
+                            "id": "q7", "type": "radio", "text": "كم عدد محاولات سحب الدم؟",
+                            "options": ["1", "2", "2+"]
+                        },
+                        { "id": "q8", "type": "radio", "text": "هل قامت فنية سحب الدم بإتباع الإجراءات الصحيحة لتنظيف اليدين وارتداء القفازات قبل سحب الدم؟", "options": ["نعم", "لا"] },
+                        { "id": "q9", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع قسم الأشعة؟" },
+                        { "id": "q10", "type": "rating", "text": "بشكل عام، كيف كانت تجربتك مع الصيدلية؟" },
+                        { "id": "q11", "type": "rating", "text": "يرجى تقييم مستوى احترام ولباقة الصيدلي" },
+                        { "id": "q12", "type": "radio", "text": "هل شرح الصيدلي طريقة إستخدام الدواء؟", "options": ["نعم", "لا"] },
+                        { "id": "q13", "type": "radio", "text": "هل وضع الصيدلي ملصقات التعليمات على الدواء؟", "options": ["نعم", "لا"] },
+                        { "id": "q14", "type": "radio", "text": "هل كانت الأدوية الموصوفة متوفرة؟", "options": ["نعم", "لا"] },
+                        {
+                            "id": "q15", "type": "rating", "text": "كيف تقيم إجمالي مدة الإنتظار خلال زيارتك لمستشفى دلّه؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "checkbox",
+                                "text": "في أي مرحلة كان وقت الإنتظار الأطول خلال زيارتك؟",
+                                "options": [
+                                    "التسجيل",
+                                    "الدخول على الطبيب",
+                                    "المختبر",
+                                    "الصيدلية",
+                                    "الأشعة",
+                                    "إجراءات الحصول على موافقة التأمين"
+                                ]
+                            }
+                        },
+                        { "id": "q16", "type": "rating-10", "text": "ما هي احتمالية أن تنصح عائلتك وأصدقائك بمستشفى دلّه؟" },
+                        { "id": "q17", "type": "radio", "text": "بناءً على تجربتك، هل تختار مستشفى دلّه مستقبلاً عند الحاجة؟", "options": ["نعم", "لا"] },
+                        { "id": "q18", "type": "text", "text": "هل لديك أي ملاحظات للرقي بالخدمة؟" },
+                        { "id": "q19", "type": "text", "text": "هل يوجد خدمات أو أشخاص يستحقون الشكر؟" }
+                    ]
+                },
+                {
+                    "id": "inpatient_ar",
+                    "title": "استبيان قسم التنويم",
+                    "description": "عزيزي المريض، يرجى التكرم بالإجابة على الأسئلة التالية لمساعدتنا في تطوير خدمات قسم التنويم وتحسينها.",
+                    "questions": [
+                        { "id": "q1", "type": "rating", "text": "بشكل عام، كيف تقيم تجربتك أثناء فترة إقامتك في المستشفى؟" },
+                        { "id": "q2", "type": "rating", "text": "ما هو تقييمك لعملية الدخول (التنويم) في المستشفى؟" },
+                        {
+                            "id": "q3", "type": "rating", "text": "كيف تقيم أداء طاقم التمريض خلال فترة تنويمك؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "ما هي أسباب عدم رضاك عن طاقم التمريض؟",
+                                "options": [
+                                    "إحترام ولباقة الطاقم",
+                                    "الاستماع لك بعناية وانتباه",
+                                    "شرح الإجراءات بأسلوب مفهوم"
+                                ]
+                            }
+                        },
+                        {
+                            "id": "q4", "type": "rating", "text": "كيف تقيم أداء طبيبك المعالج؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "ما الذي يمكن تحسينه في أداء الطبيب المعالج؟",
+                                "options": [
+                                    "إحترام ولباقة الطبيب",
+                                    "الاستماع لك بعناية وانتباه",
+                                    "شرح الخطة العلاجية بوضوح"
+                                ]
+                            }
+                        },
+                        { "id": "q5", "type": "rating", "text": "هل تم تزويدك بالمعلومات الكافية عن حالتك الصحية؟" },
+                        { "id": "q6", "type": "rating", "text": "كيف تقيم مستوى النظافة في غرف المرضى ودورات المياه؟" },
+                        { "id": "q7", "type": "rating", "text": "كيف تقيم جودة وجبات الطعام المقدمة؟" },
+                        {
+                            "id": "q8", "type": "rating", "text": "كيف تقيم إدارة الألم والتعامل معه من قبل الطاقم الطبي؟",
+                            "conditional": {
+                                "value": 1,
+                                "type": "radio",
+                                "text": "هل كان هناك أي مشاكل في إدارة الألم؟",
+                                "options": [
+                                    "لم تتم الاستجابة لطلبي بسرعة",
+                                    "لم يتم تقدير شدة الألم بشكل صحيح",
+                                    "عدم كفاية الدواء"
+                                ]
+                            }
+                        },
+                        { "id": "q9", "type": "rating", "text": "كيف تقيم عملية الخروج من المستشفى (الخروج)؟" },
+                        { "id": "q10", "type": "rating", "text": "هل تم تزويدك بتعليمات واضحة حول الرعاية بعد الخروج؟" },
+                        { "id": "q11", "type": "rating-10", "text": "ما هي احتمالية أن تنصح عائلتك وأصدقائك بالمستشفى؟" },
+                        { "id": "q12", "type": "radio", "text": "بناءً على تجربتك، هل تختار هذا المستشفى مستقبلاً عند الحاجة؟", "options": ["نعم", "لا"] },
+                        { "id": "q13", "type": "text", "text": "هل لديك أي ملاحظات أخرى للرقي بالخدمة؟" },
+                        { "id": "q14", "type": "text", "text": "هل يوجد خدمات أو أشخاص يستحقون الشكر؟" }
+                    ]
+                }
+            ];
+            let feedback = JSON.parse(localStorage.getItem('feedback')) || {};
+            
+            const saveData = () => {
+                localStorage.setItem('surveys', JSON.stringify(surveys));
+                localStorage.setItem('feedback', JSON.stringify(feedback));
+            };
+
+            if (localStorage.getItem('surveys') === null) {
+                saveData();
+            }
+
+            const showMessage = (text) => {
+                messageTextEl.textContent = text;
+                messageBox.classList.remove('hidden');
+            };
+
+            const hideMessage = () => {
+                messageBox.classList.add('hidden');
+            };
+
+            messageOkBtn.addEventListener('click', hideMessage);
+
+            // Function to calculate average score for a survey
+            const calculateAverageScore = (surveyId, timeFrame = null) => {
+                const submissions = feedback[surveyId] || [];
+                if (submissions.length === 0) {
+                    return null;
+                }
+
+                let filteredSubmissions = submissions;
+
+                if (timeFrame) {
+                    const now = new Date();
+                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+                    if (timeFrame === 'currentMonth') {
+                        filteredSubmissions = submissions.filter(sub => {
+                            const subDate = new Date(sub.submittedAt);
+                            return subDate >= startOfMonth && subDate <= now;
+                        });
+                    } else if (timeFrame === 'previousMonth') {
+                        filteredSubmissions = submissions.filter(sub => {
+                            const subDate = new Date(sub.submittedAt);
+                            return subDate >= startOfPreviousMonth && subDate <= endOfPreviousMonth;
+                        });
+                    } else if (timeFrame === 'quarterly') {
+                        const startOfQuarter = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+                        filteredSubmissions = submissions.filter(sub => {
+                            const subDate = new Date(sub.submittedAt);
+                            return subDate >= startOfQuarter;
+                        });
+                    } else if (timeFrame === 'semi-annually') {
+                        const startOfSemiAnnually = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+                        filteredSubmissions = submissions.filter(sub => {
+                            const subDate = new Date(sub.submittedAt);
+                            return subDate >= startOfSemiAnnually;
+                        });
+                    } else if (timeFrame === 'annually') {
+                        const startOfAnnually = new Date(now.getFullYear() - 1, now.getMonth(), 1);
+                        filteredSubmissions = submissions.filter(sub => {
+                            const subDate = new Date(sub.submittedAt);
+                            return subDate >= startOfAnnually;
+                        });
+                    }
+                }
+                
+                if (filteredSubmissions.length === 0) {
+                    return null;
+                }
+
+                let totalScore = 0;
+                let ratingCount = 0;
+
+                filteredSubmissions.forEach(submission => {
+                    for (const key in submission) {
+                        const question = surveys.find(s => s.id === surveyId).questions.find(q => q.id === key);
+                        if (question && (question.type === 'rating' || question.type === 'rating-10')) {
+                            const value = parseInt(submission[key]);
+                            if (!isNaN(value)) {
+                                const ratingScale = question.type === 'rating' ? 5 : 10;
+                                totalScore += (value / ratingScale) * 100;
+                                ratingCount++;
+                            }
+                        }
+                    }
+                });
+
+                if (ratingCount === 0) {
+                    return null;
+                }
+
+                return (totalScore / ratingCount).toFixed(2);
+            };
+
+            // --- Navigation Logic ---
+            const showView = (viewName) => {
+                Object.values(views).forEach(v => v.classList.add('hidden'));
+                Object.values(tabs).forEach(t => t.classList.remove('active'));
+                
+                if (viewName === 'dashboard') {
+                    views.dashboard.classList.remove('hidden');
+                    tabs.dashboard.classList.add('active');
+                    renderDashboard();
+                } else if (viewName === 'survey') {
+                    views.survey.classList.remove('hidden');
+                    // No tab is active for this view
+                }
+            };
+
+            tabs.dashboard.addEventListener('click', () => showView('dashboard'));
+            backToDashboardBtn.addEventListener('click', () => showView('dashboard'));
+
+            // --- Dashboard Rendering ---
+            const renderDashboard = () => {
+                surveyListEl.innerHTML = '';
+                if (surveys.length === 0) {
+                    surveyListEl.innerHTML = '<p class="text-gray-500 text-center col-span-full">لا يوجد استبيانات حتى الآن.</p>';
+                    return;
+                }
+                surveys.forEach(survey => {
+                    const feedbackCount = feedback[survey.id] ? feedback[survey.id].length : 0;
+                    const averageScore = calculateAverageScore(survey.id);
+                    const averageScoreText = averageScore !== null ? `${averageScore} / 100` : 'لا يوجد بيانات';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'survey-card bg-white p-6 rounded-lg shadow-md cursor-pointer transition-all duration-300 ease-in-out transform';
+                    card.innerHTML = `
+                        <h3 class="text-xl font-semibold text-gray-800 mb-2">${survey.title}</h3>
+                        <p class="text-gray-600 mb-4">${survey.description.substring(0, 100)}...</p>
+                        <div class="text-sm text-gray-500 flex justify-between items-center mb-2">
+                            <span class="text-left">رقم المعرف: ${survey.id}</span>
+                            <span class="text-right">عدد التقييمات: ${feedbackCount}</span>
+                        </div>
+                        <div class="text-md font-bold text-gray-700 flex justify-between items-center">
+                            <span>متوسط التقييم:</span>
+                            <span class="text-blue-500">${averageScoreText}</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        showSurveyView(survey);
+                    });
+                    surveyListEl.appendChild(card);
+                });
+            };
+
+            // --- Survey View Logic ---
+            const showSurveyView = (survey) => {
+                currentSurveyId = survey.id;
+                const averageScore = calculateAverageScore(survey.id);
+                const averageScoreText = averageScore !== null ? `${averageScore} / 100` : 'لا يوجد بيانات';
+                
+                surveyDetailsEl.innerHTML = `
+                    <h3 class="text-2xl font-semibold text-gray-800 mb-2">${survey.title}</h3>
+                    <p class="text-gray-600">${survey.description}</p>
+                    <div class="mt-4 text-lg font-bold text-gray-700">
+                        <span>متوسط التقييم: </span>
+                        <span class="text-blue-500">${averageScoreText}</span>
+                    </div>
+                `;
+                renderFeedbackForm(survey);
+                renderFeedbackList(survey.id);
+                renderReport(survey.id);
+                renderQuestionReports(survey.id); // Call new function here
+                showView('survey');
+            };
+
+            const renderReport = (surveyId) => {
+                const currentMonthScore = calculateAverageScore(surveyId, 'currentMonth');
+                const previousMonthScore = calculateAverageScore(surveyId, 'previousMonth');
+                let comparisonText = '';
+                
+                if (currentMonthScore !== null && previousMonthScore !== null) {
+                    const diff = (parseFloat(currentMonthScore) - parseFloat(previousMonthScore)).toFixed(2);
+                    if (diff > 0) {
+                        comparisonText = `
+                            <p class="text-green-600 font-semibold mt-2">
+                                <span class="text-sm">↑</span> تحسن الأداء بمقدار ${diff} نقطة مقارنة بالشهر السابق.
+                            </p>
+                        `;
+                    } else if (diff < 0) {
+                        comparisonText = `
+                            <p class="text-red-600 font-semibold mt-2">
+                                <span class="text-sm">↓</span> انخفاض الأداء بمقدار ${-diff} نقطة مقارنة بالشهر السابق.
+                            </p>
+                        `;
+                    } else {
+                        comparisonText = `
+                            <p class="text-gray-600 font-semibold mt-2">
+                                لا يوجد تغيير في الأداء مقارنة بالشهر السابق.
+                            </p>
+                        `;
+                    }
+                } else {
+                     comparisonText = `<p class="text-gray-500 mt-2">لا توجد بيانات كافية للمقارنة مع الشهر السابق.</p>`;
+                }
+
+                reportContentEl.innerHTML = `
+                    <p class="mb-2">متوسط تقييم هذا الشهر: <span class="font-bold">${currentMonthScore !== null ? currentMonthScore : 'لا يوجد بيانات'}</span></p>
+                    <p>متوسط تقييم الشهر السابق: <span class="font-bold">${previousMonthScore !== null ? previousMonthScore : 'لا يوجد بيانات'}</span></p>
+                    ${comparisonText}
+                `;
+            };
+            
+            compareQuarterlyBtn.addEventListener('click', () => updateReportComparison('quarterly'));
+            compareSemiAnnuallyBtn.addEventListener('click', () => updateReportComparison('semi-annually'));
+            compareAnnuallyBtn.addEventListener('click', () => updateReportComparison('annually'));
+
+            const updateReportComparison = (period) => {
+                if (!currentSurveyId) return;
+                
+                let periodText = '';
+                if (period === 'quarterly') periodText = 'الأشهر الثلاثة الأخيرة';
+                if (period === 'semi-annually') periodText = 'الأشهر الستة الأخيرة';
+                if (period === 'annually') periodText = 'السنة الأخيرة';
+                
+                const averageScore = calculateAverageScore(currentSurveyId, period);
+                
+                reportContentEl.innerHTML = `
+                    <p class="mb-2">متوسط التقييم خلال ${periodText}: <span class="font-bold text-blue-500">${averageScore !== null ? averageScore : 'لا يوجد بيانات'}</span></p>
+                `;
+            };
+
+            const renderQuestionReports = (surveyId) => {
+                questionReportsEl.innerHTML = '';
+                const survey = surveys.find(s => s.id === surveyId);
+                const submissions = feedback[surveyId] || [];
+
+                survey.questions.forEach(q => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'bg-gray-50 p-4 rounded-md shadow-sm';
+                    
+                    let reportContent = `<p class="font-semibold text-gray-700">${q.text}</p>`;
+                    
+                    if (q.type === 'rating' || q.type === 'rating-10') {
+                        let totalScore = 0;
+                        let count = 0;
+
+                        submissions.forEach(sub => {
+                            if (sub[q.id] && !isNaN(sub[q.id])) {
+                                const value = parseInt(sub[q.id]);
+                                const ratingScale = q.type === 'rating' ? 5 : 10;
+                                totalScore += (value / ratingScale) * 100;
+                                count++;
+                            }
+                        });
+
+                        const average = count > 0 ? (totalScore / count).toFixed(2) : 'لا يوجد بيانات';
+                        reportContent += `<p class="text-blue-500 font-bold mt-1">${average} / 100</p>`;
+                        reportContent += `<p class="text-xs text-gray-500 mt-1"> (${count} تقييم)</p>`;
+
+                    } else if (q.type === 'text') {
+                        let count = 0;
+                        submissions.forEach(sub => {
+                            if (sub[q.id] && sub[q.id].trim() !== '') {
+                                count++;
+                            }
+                        });
+                        reportContent += `<p class="text-gray-600 mt-1">عدد الإجابات: ${count}</p>`;
+                    } else if (q.type === 'radio' || q.type === 'checkbox') {
+                         let counts = {};
+                         q.options.forEach(opt => counts[opt] = 0);
+                         submissions.forEach(sub => {
+                             if (sub[q.id]) {
+                                 if (q.type === 'radio') {
+                                     counts[sub[q.id]]++;
+                                 } else { // Checkbox
+                                     sub[q.id].split(', ').forEach(item => {
+                                         if (counts[item.trim()] !== undefined) {
+                                             counts[item.trim()]++;
+                                         }
+                                     });
+                                 }
+                             }
+                         });
+                         reportContent += `<ul class="list-disc list-inside mt-2 text-sm text-gray-600">`;
+                         for (const option in counts) {
+                             reportContent += `<li>${option}: ${counts[option]} إجابات</li>`;
+                         }
+                         reportContent += `</ul>`;
+                    }
+                    
+                    questionDiv.innerHTML = reportContent;
+                    questionReportsEl.appendChild(questionDiv);
+                });
+            };
+
+            const renderFeedbackForm = (survey) => {
+                feedbackFormContainer.innerHTML = '';
+                const form = document.createElement('form');
+                form.id = 'feedback-form';
+                form.className = 'bg-gray-50 p-6 rounded-lg shadow-inner';
+                form.innerHTML = `
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">أرسل تقييمك</h3>
+                `;
+
+                survey.questions.forEach(q => {
+                    const questionDiv = document.createElement('div');
+                    questionDiv.className = 'mb-4';
+                    questionDiv.id = `question-${q.id}`;
+                    
+                    questionDiv.innerHTML = `<label for="${q.id}" class="block text-gray-700 font-medium mb-2">${q.text}</label>`;
+                    
+                    if (q.type === 'rating') {
+                        const ratingDiv = document.createElement('div');
+                        ratingDiv.className = 'flex items-center space-x-1 space-x-reverse text-3xl';
+                        
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = q.id;
+                        hiddenInput.required = true;
+                        ratingDiv.appendChild(hiddenInput);
+
+                        for (let i = 1; i <= 5; i++) {
+                            const star = document.createElement('span');
+                            star.className = 'star text-gray-400 transition-colors duration-200';
+                            star.textContent = '★';
+                            star.dataset.value = i;
+                            star.dataset.questionId = q.id;
+                            star.title = starDescriptions[i];
+                            star.addEventListener('click', (e) => {
+                                const value = parseInt(e.target.dataset.value);
+                                const questionId = e.target.dataset.questionId;
+                                const parentRatingDiv = e.target.closest('.flex');
+                                const stars = parentRatingDiv.querySelectorAll('.star');
+                                
+                                stars.forEach(s => s.classList.remove('text-yellow-400'));
+                                for (let j = 1; j <= value; j++) {
+                                    parentRatingDiv.querySelector(`[data-value="${j}"]`).classList.add('text-yellow-400');
+                                }
+                                parentRatingDiv.querySelector(`input[name="${questionId}"]`).value = value;
+
+                                const conditionalDiv = document.getElementById(`conditional-q-${questionId}`);
+                                if (q.conditional && value === q.conditional.value) {
+                                    if (!conditionalDiv) {
+                                        const newDiv = document.createElement('div');
+                                        newDiv.id = `conditional-q-${questionId}`;
+                                        newDiv.className = 'mt-4';
+                                        let optionsHTML = '';
+                                        if (q.conditional.type === 'radio') {
+                                            q.conditional.options.forEach((option, index) => {
+                                                optionsHTML += `
+                                                    <div class="flex items-center mb-2">
+                                                        <input type="radio" id="${questionId}-reason-${index}" name="${questionId}-reason" value="${option}" class="ml-2">
+                                                        <label for="${questionId}-reason-${index}">${option}</label>
+                                                    </div>
+                                                `;
+                                            });
+                                        } else if (q.conditional.type === 'checkbox') {
+                                             q.conditional.options.forEach((option, index) => {
+                                                optionsHTML += `
+                                                    <div class="flex items-center mb-2">
+                                                        <input type="checkbox" id="${questionId}-reason-${index}" name="${questionId}-reason" value="${option}" class="ml-2">
+                                                        <label for="${questionId}-reason-${index}">${option}</label>
+                                                    </div>
+                                                `;
+                                            });
+                                        }
+                                        newDiv.innerHTML = `
+                                            <label class="block text-gray-700 font-medium mb-2">${q.conditional.text}</label>
+                                            <div class="space-y-2">
+                                                ${optionsHTML}
+                                            </div>
+                                        `;
+                                        questionDiv.appendChild(newDiv);
+                                    }
+                                } else {
+                                    if (conditionalDiv) {
+                                        conditionalDiv.remove();
+                                    }
+                                }
+                            });
+                            ratingDiv.appendChild(star);
+                        }
+                        questionDiv.appendChild(ratingDiv);
+                    } else if (q.type === 'rating-10') {
+                        const rating10Div = document.createElement('div');
+                        rating10Div.className = 'flex flex-wrap space-x-1 space-x-reverse';
+                        
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = q.id;
+                        hiddenInput.required = true;
+                        rating10Div.appendChild(hiddenInput);
+
+                        for (let i = 1; i <= 10; i++) {
+                            const numberBtn = document.createElement('button');
+                            numberBtn.type = 'button';
+                            numberBtn.className = 'rating-10-btn w-8 h-8 rounded-full border border-gray-300 text-sm font-medium hover:bg-blue-500 hover:text-white transition-colors duration-200';
+                            numberBtn.textContent = i;
+                            numberBtn.dataset.value = i;
+                            numberBtn.addEventListener('click', (e) => {
+                                const value = e.target.dataset.value;
+                                const buttons = e.target.closest('.flex').querySelectorAll('.rating-10-btn');
+                                buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+                                e.target.classList.add('bg-blue-500', 'text-white');
+                                form.querySelector(`input[name="${q.id}"]`).value = value;
+                            });
+                            rating10Div.appendChild(numberBtn);
+                        }
+                        questionDiv.appendChild(rating10Div);
+                    } else if (q.type === 'text') {
+                        const textarea = document.createElement('textarea');
+                        textarea.id = q.id;
+                        textarea.name = q.id;
+                        textarea.rows = 4;
+                        textarea.className = 'w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500';
+                        textarea.required = true;
+                        questionDiv.appendChild(textarea);
+                    } else if (q.type === 'radio') {
+                        q.options.forEach((option, index) => {
+                            const radioDiv = document.createElement('div');
+                            radioDiv.className = 'flex items-center mb-2';
+                            radioDiv.innerHTML = `
+                                <input type="radio" id="${q.id}-${index}" name="${q.id}" value="${option}" class="ml-2" required>
+                                <label for="${q.id}-${index}">${option}</label>
+                            `;
+                            questionDiv.appendChild(radioDiv);
+                        });
+                    } else if (q.type === 'checkbox') {
+                         q.options.forEach((option, index) => {
+                            const checkboxDiv = document.createElement('div');
+                            checkboxDiv.className = 'flex items-center mb-2';
+                            checkboxDiv.innerHTML = `
+                                <input type="checkbox" id="${q.id}-${index}" name="${q.id}" value="${option}" class="ml-2">
+                                <label for="${q.id}-${index}">${option}</label>
+                            `;
+                            questionDiv.appendChild(checkboxDiv);
+                        });
+                    }
+
+                    form.appendChild(questionDiv);
+                });
+
+                // Add Contact Info section
+                const contactSection = document.createElement('div');
+                contactSection.className = 'mt-8 border-t pt-8 border-gray-200';
+                contactSection.innerHTML = `
+                    <h3 class="text-xl font-semibold text-gray-700 mb-4">إذا كنت ترغب في أن نتواصل معك بشأن ملاحظاتك، يرجى ترك تفاصيل الاتصال الخاصة بك أدناه</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label for="full-name" class="block text-gray-700 font-medium mb-2">الاسم</label>
+                            <input type="text" id="full-name" name="full-name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label for="phone" class="block text-gray-700 font-medium mb-2">رقم الهاتف</label>
+                            <input type="tel" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div class="mb-4 col-span-1 md:col-span-2">
+                            <label for="email" class="block text-gray-700 font-medium mb-2">البريد الإلكتروني</label>
+                            <input type="email" id="email" name="email" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                `;
+                form.appendChild(contactSection);
+
+                const submitButton = document.createElement('button');
+                submitButton.type = 'submit';
+                submitButton.className = 'w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-md hover:bg-blue-600 transition-colors duration-200 mt-8';
+                submitButton.textContent = 'أرسل التقييم';
+                form.appendChild(submitButton);
+
+                feedbackFormContainer.appendChild(form);
+
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const submission = {};
+                    const formData = new FormData(form);
+                    for (const [key, value] of formData.entries()) {
+                        submission[key] = value;
+                    }
+                    submission.submittedAt = new Date().toISOString();
+                    if (!feedback[survey.id]) feedback[survey.id] = [];
+                    feedback[survey.id].push(submission);
+                    saveData();
+                    showMessage('شكراً لتقييمك! تم إرسال ملاحظاتك بنجاح.');
+                    form.reset();
+                    renderFeedbackList(survey.id);
+                });
+            };
+
+            const renderFeedbackList = (surveyId) => {
+                feedbackListEl.innerHTML = '';
+                const submissions = feedback[surveyId] || [];
+                if (submissions.length === 0) {
+                    feedbackListEl.innerHTML = '<p class="text-gray-500 text-center">لم يتم إرسال أي تقييمات حتى الآن.</p>';
+                    return;
+                }
+
+                submissions.forEach(sub => {
+                    const card = document.createElement('div');
+                    let sentimentClass = 'feedback-neutral';
+                    const ratingKey = Object.keys(sub).find(key => {
+                        const question = surveys.find(s => s.id === surveyId).questions.find(q => q.id === key);
+                        return question && (question.type === 'rating' || question.type === 'rating-10');
+                    });
+                    if (ratingKey) {
+                        const rating = parseInt(sub[ratingKey]);
+                        const ratingScale = surveys.find(s => s.id === surveyId).questions.find(q => q.id === ratingKey).type === 'rating-10' ? 10 : 5;
+                        const normalizedRating = (rating / ratingScale) * 100;
+                        if (normalizedRating >= 75) {
+                            sentimentClass = 'feedback-positive';
+                        } else if (normalizedRating <= 25) {
+                            sentimentClass = 'feedback-negative';
+                        }
+                    }
+
+                    card.className = `feedback-item bg-white p-4 rounded-lg shadow-sm ${sentimentClass}`;
+                    let contentHTML = '';
+                    const survey = surveys.find(s => s.id === surveyId);
+                    
+                    for (const key in sub) {
+                        if (key === 'submittedAt') continue;
+                        
+                        const question = survey.questions.find(q => q.id === key);
+
+                        if (question) {
+                            contentHTML += `<p class="text-gray-800 font-semibold mb-1">${question.text}</p>`;
+                            if (question.type === 'rating') {
+                                contentHTML += `<p class="text-gray-600">${sub[key]} / 5</p>`;
+                                if (question.conditional && parseInt(sub[key]) === question.conditional.value) {
+                                     const followUpKey = `${key}-reason`;
+                                     if(sub[followUpKey]) {
+                                        contentHTML += `<p class="text-gray-800 font-semibold mt-2">${question.conditional.text}</p>`;
+                                        contentHTML += `<p class="text-gray-600">${sub[followUpKey]}</p>`;
+                                     }
+                                }
+                            } else if (question.type === 'rating-10') {
+                                contentHTML += `<p class="text-gray-600">${sub[key]} / 10</p>`;
+                            } else {
+                                contentHTML += `<p class="text-gray-600">${sub[key]}</p>`;
+                            }
+                        } else {
+                            if (key.includes('-reason')) {
+                                contentHTML += `<p class="text-gray-800 font-semibold mt-2">سبب التقييم المنخفض:</p>`;
+                                contentHTML += `<p class="text-gray-600">${sub[key]}</p>`;
+                            } else if (key === 'full-name' || key === 'phone' || key === 'email') {
+                                continue;
+                            }
+                        }
+                    }
+                    contentHTML += `<p class="text-xs text-gray-400 mt-2">تاريخ الإرسال: ${new Date(sub.submittedAt).toLocaleString('ar-SA')}</p>`;
+                    card.innerHTML = contentHTML;
+                    feedbackListEl.appendChild(card);
+                });
+            };
+
+            // --- Fake Data Generation ---
+            const generateFakeFeedback = () => {
+                const names = ['أحمد', 'فاطمة', 'محمد', 'نورة', 'علي', 'سارة', 'خالد', 'ريم'];
+                const cities = ['الرياض', 'جدة', 'الدمام', 'مكة', 'المدينة'];
+                const comments_ar = [
+                    'الخدمة ممتازة جداً، شكراً لكم.',
+                    'كان وقت الانتظار طويلاً بعض الشيء.',
+                    'الطبيب كان ودوداً ومحترفاً للغاية.',
+                    'لا توجد ملاحظات، كل شيء كان على ما يرام.',
+                    'أداء الممرضات كان رائعاً.',
+                    'أود لو كانت إجراءات التسجيل أسرع.',
+                    'شكراً على الرعاية الجيدة.',
+                    'الصيدلي قام بشرح الدواء بوضوح.',
+                    'الغرفة كانت نظيفة جداً ومريحة.',
+                    'كانت تجربتي جيدة بشكل عام.',
+                    'لم تكن الخدمة سريعة كما توقعت.',
+                    'الموظفون كانوا متعاونين جداً.'
+                ];
+                
+                const generateRandomAnswer = (question) => {
+                    if (question.type === 'rating') {
+                        const rand = Math.random();
+                        if (rand < 0.1) return 1;
+                        if (rand < 0.2) return 2;
+                        if (rand < 0.4) return 3;
+                        if (rand < 0.7) return 4;
+                        return 5;
+                    } else if (question.type === 'rating-10') {
+                        return Math.floor(Math.random() * 6) + 5;
+                    } else if (question.type === 'radio') {
+                        return question.options[Math.floor(Math.random() * question.options.length)];
+                    } else if (question.type === 'checkbox') {
+                         const selectedOptions = [];
+                         const numToSelect = Math.floor(Math.random() * question.options.length) + 1;
+                         const shuffledOptions = question.options.sort(() => 0.5 - Math.random());
+                         for (let i = 0; i < numToSelect; i++) {
+                             selectedOptions.push(shuffledOptions[i]);
+                         }
+                         return selectedOptions.join(', ');
+                    } else if (question.type === 'text') {
+                        return comments_ar[Math.floor(Math.random() * comments_ar.length)];
+                    }
+                };
+
+                surveys.forEach(survey => {
+                    const surveyId = survey.id;
+                    if (!feedback[surveyId]) feedback[surveyId] = [];
+
+                    for (let i = 0; i < 345; i++) {
+                        const submission = {};
+                        survey.questions.forEach(q => {
+                            const answer = generateRandomAnswer(q);
+                            submission[q.id] = answer;
+                            
+                            if (q.conditional && ((q.type === 'rating' && q.conditional.value === parseInt(answer)) || (q.type === 'rating-10' && parseInt(answer) < q.conditional.value))) {
+                                const followUpAnswer = generateRandomAnswer({
+                                    type: q.conditional.type,
+                                    options: q.conditional.options
+                                });
+                                submission[`${q.id}-reason`] = followUpAnswer;
+                            }
+                        });
+                        
+                        if (Math.random() < 0.2) {
+                            submission['full-name'] = names[Math.floor(Math.random() * names.length)] + ' ' + (Math.random() < 0.5 ? 'المبارك' : 'الدوسري');
+                            submission['phone'] = `555-${Math.floor(Math.random() * 9000) + 1000}`;
+                            submission['email'] = `${submission['full-name'].replace(/\s/g, '').toLowerCase()}@example.com`;
+                        }
+
+                        const now = new Date();
+                        const randomDate = new Date(now.getFullYear(), now.getMonth() - Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1);
+                        submission.submittedAt = randomDate.toISOString();
+
+                        feedback[surveyId].push(submission);
+                    }
+                });
+                saveData();
+                showMessage('تم إنشاء 345 تقييم وهمي لكل قسم بنجاح!');
+                renderDashboard();
+            };
+            
+            generateFakeDataBtn.addEventListener('click', generateFakeFeedback);
+
+
+            showView('dashboard');
+        });
+    </script>
+</body>
+</html>
